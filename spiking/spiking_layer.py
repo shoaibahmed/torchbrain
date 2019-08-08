@@ -5,6 +5,22 @@ from torch import nn
 
 from node import Node
 
+def pairwise_distance(t):
+    """
+    Euclidean pairwise dist. similar to scipy.spatial.distance.pdist.
+    Args:
+        t (tensor): 2d tensor
+    """
+
+    n = t.size(0)
+    m = t.size(0)
+    d = t.size(1)
+
+    x = t.unsqueeze(1).expand(n, m, d)
+    y = t.unsqueeze(0).expand(n, m, d)
+
+    return torch.pow(x - y, 2).sum(2)
+
 
 class SpikingLayer(nn.Module):
     def __init__(self, num_neurons, square_size, neighbourhood_size, norm=2):
@@ -15,8 +31,7 @@ class SpikingLayer(nn.Module):
         topology = torch.rand(num_neurons, 2) * square_size
 
         # 2. Define node neighbours
-        pdist = nn.PairwiseDistance(p=norm)
-        dist_matrix = pdist(topology, topology)
+        dist_matrix = pairwise_distance(topology)
 
         # 3. Initialize nodes
         nodes = nn.ModuleList([Node(topology[i, :], dist_matrix[i, :])
