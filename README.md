@@ -48,7 +48,9 @@ Spiking neural network in the first layer spontaneously forming spatiotemporal w
 
 ![Waves in arbitrary geometry input layer](https://caltech.box.com/s/fizv2qd60hca1vl7nb9ez4layaktf1j3)
 
-
+<figure class="video_container">
+  <iframe src="https://caltech.box.com/s/fizv2qd60hca1vl7nb9ez4layaktf1j3" frameborder="0" allowfullscreen="true"> </iframe>
+</figure>
 
 ## Challenges I ran into
 The majority of us in the group are not computational neuroscientists - although maybe now we are :)
