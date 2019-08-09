@@ -72,7 +72,8 @@ class LGNLayer(nn.Module):
     # TODO: Add possibility to add multiple layers of Retina or LGN - layer idx
     def __init__(self, num_neurons_retina, num_neurons_lgn, square_size, neighbourhood_size):
         super(LGNLayer, self).__init__()
-        self.num_neurons = num_neurons_retina
+        self.num_neurons_retina = num_neurons_retina
+        self.num_neurons_lgn = num_neurons_lgn
 
         # Parameters of the LGN
         self.eta = 0.1
@@ -82,8 +83,10 @@ class LGNLayer(nn.Module):
         self.sigma_wts = 0.14
 
         self.is_firing = None
+        self.activated = None
         self.node_x = None
         self.firing_matrix = []
+        self.activation_history = []
 
         # 1. Define topology - square
         topology = torch.rand(num_neurons_retina, 2) * square_size
@@ -121,6 +124,9 @@ class LGNLayer(nn.Module):
 
         # Hebian learning for the LGN nodes
         lgn_act = torch.matmul(self.lgn_weights, self.is_firing)
+        lgn_act[lgn_act < 0] = 0.0
+        self.activation_history.append(torch.t(lgn_act))
+
         lgn_act = lgn_act - self.lgn_threshold
         lgn_act[lgn_act < 0] = 0.0
 
@@ -142,14 +148,26 @@ class LGNLayer(nn.Module):
             # Normalize weights to a constant strength
             self.lgn_weights[max_lgn_act_idx, :] = self.lgn_weights[max_lgn_act_idx, :] / \
                                                    torch.mean(self.lgn_weights[max_lgn_act_idx, :]) * self.mu_wts
+            self.activated[max_lgn_act_idx] += 1.0
 
         return None  # FIXME
 
     def reset_state(self):
         self.firing_matrix = []
-        self.is_firing = torch.zeros(self.num_neurons)
+        self.activation_history = []
+        self.is_firing = torch.zeros(self.num_neurons_retina)
+        self.activated = torch.zeros(self.num_neurons_lgn)
         for node in self.nodes:
             node.reset()
+
+    def update_params(self):
+        activity = torch.stack(self.activation_history, dim=0)
+        for i in range(self.activated.size(0)):
+            if self.activated[i] < 200:
+                self.lgn_threshold[i] = torch.max(activity[:, i]) * 1.0 / 5.0
+
+        self.activation_history = []
+        self.activation_history.append(torch.max(activity, axis=0)[0])
 
     def get_firing_matrix(self):
         return self.firing_matrix
@@ -197,8 +215,11 @@ class SpikingLGN(nn.Module):
 
     def forward(self, x):
         # Evolve the dynamics of the model over time
-        for _ in range(self.num_timesteps):
+        for iter in range(self.num_timesteps):
             _ = self.layer(x)
+
+            if (iter + 1) % 1000 == 0:
+                self.layer[0].update_params()  # TODO: Change the fixed index
 
         # Get neuron firing pattern and reset its state
         for idx in range(len(self.layer)):
@@ -214,7 +235,7 @@ class SpikingLGN(nn.Module):
 if __name__ == "__main__":
     # net = SpikingNN(1, 1500, 50, 10, (2, 4), num_timesteps=500)
     net = SpikingLGN(num_retina_layers=1, num_lgn_layers=1, num_neurons_retina=1500, num_neurons_lgn=400,
-                     square_size=50, num_classes=10, neighbourhood_size=(3, 5), num_timesteps=100)
+                     square_size=50, num_classes=10, neighbourhood_size=(3, 5), num_timesteps=10000)
     inp = torch.rand((1, 1, 28, 28))
     out = net(inp)
     out = np.array(out)
