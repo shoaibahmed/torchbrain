@@ -46,10 +46,8 @@ Each network can be built with a variable number of spiking layers, and to do so
 
 Spiking neural network in the first layer spontaneously forming spatiotemporal waves that tile the first layer to self-organize pooling layers.
 
-![Waves in arbitrary geometry input layer](https://caltech.box.com/s/fizv2qd60hca1vl7nb9ez4layaktf1j3)
-
 <figure class="video_container">
-  <iframe src="https://caltech.box.com/s/fizv2qd60hca1vl7nb9ez4layaktf1j3" frameborder="0" allowfullscreen="true"> </iframe>
+  <iframe src="https://www.youtube.com/embed/enMumwvLAug" frameborder="0" allowfullscreen="true"> </iframe>
 </figure>
 
 ## Challenges I ran into
