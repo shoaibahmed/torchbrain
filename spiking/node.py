@@ -8,19 +8,19 @@ class Node(nn.Module):
     def __init__(self, pos, neighbours_dist, neighbourhood_size):
         super(Node, self).__init__()
 
-        neighbours_excitory = neighbours_dist < neighbourhood_size[0]
-        neighbours_inhibitory = neighbours_dist > neighbourhood_size[1]
+        neighbours_excitory = (neighbours_dist < neighbourhood_size[0]).float()
+        neighbours_inhibitory = (neighbours_dist > neighbourhood_size[1]).float()
         self.weights = neighbours_excitory * 5 + neighbours_inhibitory * torch.exp(neighbours_dist / 10) * -2
 
         self.a = torch.tensor([0.02])
         self.b = torch.tensor([0.2])
-        self.c = -65 + 15 * torch.square(torch.rand())
-        self.d = 8 - 6 * torch.square(torch.rand())
+        self.c = -65.0 + 15.0 * torch.pow(torch.rand(1), 2)
+        self.d = 8.0 - 6.0 * torch.pow(torch.rand(1), 2)
         self.pos = pos
 
-        self.v = torch.tensor([-65])
+        self.v = torch.tensor([-65.0])
         self.u = self.b * self.v
-        self.threshold = torch.tensor([30])
+        self.threshold = torch.tensor([30.0])
         self.is_firing = False
 
     def get_pos(self):

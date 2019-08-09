@@ -6,6 +6,23 @@ from torch import nn
 from node import Node
 
 
+def pairwise_distance(t):
+    """
+    Euclidean pairwise dist. similar to scipy.spatial.distance.pdist.
+    Args:
+        t (tensor): 2d tensor
+    """
+
+    n = t.size(0)
+    m = t.size(0)
+    d = t.size(1)
+
+    x = t.unsqueeze(1).expand(n, m, d)
+    y = t.unsqueeze(0).expand(n, m, d)
+
+    return torch.sqrt(torch.pow(x - y, 2).sum(2))
+
+
 class SpikingLayer(nn.Module):
     def __init__(self, num_neurons, square_size, neighbourhood_size, norm=2):
         super(SpikingLayer, self).__init__()
@@ -15,8 +32,7 @@ class SpikingLayer(nn.Module):
         topology = torch.rand(num_neurons, 2) * square_size
 
         # 2. Define node neighbours
-        pdist = nn.PairwiseDistance(p=norm)
-        dist_matrix = pdist(topology, topology)
+        dist_matrix = pairwise_distance(topology)
 
         self.is_firing = None
         self.node_x = None
@@ -39,14 +55,14 @@ class SpikingLayer(nn.Module):
 
 
 class SpikingNN(nn.Module):
-    def __init__(self, num_layers, num_neurons, num_classes, num_timesteps=100):
+    def __init__(self, num_layers, num_neurons, square_size, num_classes, neighbourhood_size=(3, 5), num_timesteps=10):
         super(SpikingNN, self).__init__()
         self.num_layers = num_layers
         self.num_timesteps = num_timesteps
 
         layers = []
         for i in range(num_layers):
-            layer = SpikingLayer()
+            layer = SpikingLayer(num_neurons=num_neurons, square_size=square_size, neighbourhood_size=neighbourhood_size)
             layers.append(layer)
         self.layer = nn.Sequential(*layers)
 
@@ -56,18 +72,7 @@ class SpikingNN(nn.Module):
         return x
 
 
-class SpikingELM(nn.Module):
-    def __init__(self, num_layers, num_neurons, num_classes):
-        super(SpikingELM, self).__init__()
-        self.num_layers = num_layers
-        layers = []
-        for i in range(num_layers):
-            layer = SpikingLayer()
-            layers.append(layer)
-        self.layer = nn.Sequential(*layers)
-        self.cls_layer = nn.Linear(num_neurons, num_classes)
-
-    def forward(self, x):
-        x = self.layer(x)
-        x = self.cls_layer(x)
-        return x
+if __name__ == "__main__":
+    net = SpikingNN(1, 10, 10, 10, (3, 5))
+    inp = torch.rand((1, 1, 28, 28))
+    out = net(inp)
