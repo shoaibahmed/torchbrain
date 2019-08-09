@@ -10,7 +10,7 @@ class Node(nn.Module):
 
         neighbours_excitory = (neighbours_dist < neighbourhood_size[0]).float()
         neighbours_inhibitory = (neighbours_dist > neighbourhood_size[1]).float()
-        self.weights = neighbours_excitory * 5 + neighbours_inhibitory * torch.exp(-neighbours_dist / 10) * -2
+        self.weights = neighbours_excitory * 5 + neighbours_inhibitory * torch.exp(-neighbours_dist / 10) * -2.0
 
         self.a = torch.tensor([0.02])
         self.b = torch.tensor([0.2])
@@ -23,12 +23,8 @@ class Node(nn.Module):
         self.threshold = torch.tensor([30.0])
         self.is_firing = False
 
-    def get_pos(self):
-        return self.pos
-
     def is_node_firing(self):
         firing = self.is_firing
-        self.is_firing = False
         return firing
 
     def get_weights(self):
@@ -36,17 +32,24 @@ class Node(nn.Module):
 
     def forward(self, x):
         # Add random noise to the input
-        input = x + 3 * torch.randn(x.size())
+        inp = x + (3 * torch.randn(x.size()))
 
         # Reset memory if the neuron fired
-        self.is_firing = self.v > self.threshold
+        self.is_firing = self.v >= self.threshold
         if self.is_firing:
             self.v = self.c.clone()
-            self.u += self.d
+            self.u = self.u + self.d
+
+        assert self.v <= self.threshold, f"Activation exceeded the threshold value: {self.v} > {self.threshold}"
 
         # Update the dynamics of the model (stability improved with smaller steps)
         for _ in range(2):
-            self.v += 0.5 * (0.04 * self.v ** 2 + 5 * self.v + 140 - self.u + input)
-        self.u += self.a * (self.b * self.v - self.u)
+            self.v = self.v + 0.5 * (0.04 * torch.pow(self.v, 2) + 5 * self.v + 140 - self.u + inp)
+        self.u = self.u + self.a * (self.b * self.v - self.u)
 
-        return x
+        return self.v.item()
+
+    def reset(self):
+        self.v = torch.tensor([-65.0])
+        self.u = self.b * self.v
+        self.is_firing = False
