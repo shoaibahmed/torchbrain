@@ -46,7 +46,9 @@ Each network can be built with a variable number of spiking layers, and to do so
 
 Spiking neural network in the first layer spontaneously forming spatiotemporal waves that tile the first layer to self-organize pooling layers.
 
-[![waves_brain](Images/brainImg3.jpg)](https://caltech.box.com/s/j3z8nnsahct7pnkqfom8uryrfoa2rijx) 
+[![grow_brain](Images/brainImg3.jpg)](https://caltech.box.com/s/j3z8nnsahct7pnkqfom8uryrfoa2rijx) 
+[![waves_brain2](Images/wave_arbit.PNG)](https://caltech.box.com/s/fizv2qd60hca1vl7nb9ez4layaktf1j3) 
+
 
 ## Challenges I ran into
 The majority of us in the group are not computational neuroscientists - although maybe now we are :)
@@ -59,7 +61,6 @@ Separately, we faced challenges in designing our implementation. We wanted an ar
 The field of computational neuroscience and the machine-learning community shifting to spiking-neural networks implementation of artificial networks face a major difficulty when it comes to large scale implementation of spiking nets. Although spiking nets have been around since the early 1960's, the simulators present for the same aren't malleable to being built and being trained similar to artificial neural networks. 
 
 Our preliminary success in building a framework for implementing spiking neural nets on PyTorch would allow the community to start building SNN's, and would allow for reproducible research. We believe torchbrain is a promising step in that direction. 
-
 
 %We're proud of the direction we've set. All too often researches must take tedious efforts to reimplement the code of old and well-established algorithms. For instance, spiking neural networks have been around since the 1950's and our particular SNN model was developed in 1984. While there exist functional libraries in Fortran, we believe present-day researchers should have easy access to modern technologies. More importantly, we believe an open-source ecosystem should exist to serve the computational neuroscience community and develop as it does. 
 We believe torchbrain is a promising step in that direction. 
