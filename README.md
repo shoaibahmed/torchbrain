@@ -50,7 +50,21 @@ Spiking neural network in the first layer spontaneously forming spatiotemporal w
 [![waves_brain2](Images/wave_arbit.PNG)](https://caltech.box.com/s/fizv2qd60hca1vl7nb9ez4layaktf1j3) 
 
 
-## Challenges I ran into
+### Spiking Neural Network Activations
+
+[![grow_brain](Images/activation.png)](Images/activation.png)
+
+### Receptive Field of Spiking Neural Network
+
+<!-- ![Receptive Field Results](./images/90.png?raw=true&s=100 "Receptive field"){:width="50px"} -->
+<p align="center">
+  <img src="./images/90.png" width="400">
+  <img src="./images/95.png" width="400">
+  <img src="./images/100.png" width="400">
+</p>
+
+## Challenges we ran into
+
 The majority of us in the group are not computational neuroscientists - although maybe now we are :)
 With only one person knowing the depths of the field, we faced several bottlenecks in development that required the group getting up to speed. 
 
@@ -65,13 +79,15 @@ Our preliminary success in building a framework for implementing spiking neural 
 %We're proud of the direction we've set. All too often researches must take tedious efforts to reimplement the code of old and well-established algorithms. For instance, spiking neural networks have been around since the 1950's and our particular SNN model was developed in 1984. While there exist functional libraries in Fortran, we believe present-day researchers should have easy access to modern technologies. More importantly, we believe an open-source ecosystem should exist to serve the computational neuroscience community and develop as it does. 
 We believe torchbrain is a promising step in that direction. 
 
-## What I learned
+## What welearned
+
 As we've said, we're (mostly) not computational neuroscientists. We've had to learn the fundamentals of spiking neural networks and how they train. By extension, we learned a different paradigm to training neural networks and more about how the brain extracts information. 
 
 ## What's next for torchbrain
+
 Ideally, the computational neuroscience community and community of machine-learning engineers who are moving towards building brain-inspired architecture should contribute to this endeavor of implementing libraries and frameworks on PyTorch for spiking neural networks. We believe there's a lot of potential for nailing the core abstractions of the field and providing tools that accelerate research. 
 
-## License:
+## Usage:
 
 To run a basic test:
 
@@ -80,7 +96,7 @@ pip3 install torch torchvision
 python3 ./spiking/spiking_layer.py
 ```
 
-For results, please check the notebook .
+For results, please check the notebook.
 
 ## License:
 
