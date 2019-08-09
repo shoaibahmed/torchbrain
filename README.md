@@ -1,5 +1,3 @@
-# Torch Brain
-
 ![torchbrain](torchbrain.png)
 
 ## Inspiration
