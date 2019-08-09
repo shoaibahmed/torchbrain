@@ -81,6 +81,10 @@ class LGNLayer(nn.Module):
         self.mu_wts = 2.5
         self.sigma_wts = 0.14
 
+        self.is_firing = None
+        self.node_x = None
+        self.firing_matrix = []
+
         # 1. Define topology - square
         topology = torch.rand(num_neurons_retina, 2) * square_size
         topology_3d = torch.cat([topology, torch.full((num_neurons_retina, 1), 0.0)], dim=-1)  # Fixed z coordinate based on the layer
@@ -101,11 +105,7 @@ class LGNLayer(nn.Module):
         self.lgn_weights = lgn_weights / torch.mean(lgn_weights, dim=1, keepdim=True)  # Normalize the input to a particular LGN neuron
         self.lgn_threshold = torch.normal(70.0, 2.0, size=(num_neurons_lgn,))  # Number of LGN layers
 
-        self.is_firing = None
-        self.node_x = None
-        self.firing_matrix = []
-
-        # 3. Initialize nodes
+        # 6. Initialize nodes
         self.nodes = nn.ModuleList([Node(topology[i, :], dist_matrix[i, :], neighbourhood_size)
                                     for i in range(num_neurons_retina)])
 
@@ -119,32 +119,31 @@ class LGNLayer(nn.Module):
             self.is_firing[idx] = node.is_node_firing()
         self.firing_matrix.append(self.is_firing.cpu().clone().numpy())
 
-        # TODO: Hebian learning for the LGN nodes
-        y1_allLGN = torch.matmul(self.lgn_weights, self.is_firing)
-        y1_allLGN[y1_allLGN < 0] = 0.9
+        # Hebian learning for the LGN nodes
+        lgn_act = torch.matmul(self.lgn_weights, self.is_firing)
+        lgn_act[lgn_act < 0] = 0.9
+        lgn_act = lgn_act - self.lgn_threshold
+        lgn_act[lgn_act < 0] = 0.0
 
-        yAct_allLGN = y1_allLGN - self.lgn_threshold
-        yAct_allLGN[yAct_allLGN < 0] = 0.0
+        max_lgn_act_val, max_lgn_act_idx = torch.max(lgn_act, dim=-1)
 
-        maxAct, maxInd_LGN = torch.max(yAct_allLGN, dim=-1)
-
-        if (yAct_allLGN[maxInd_LGN] > 0).any():
+        if (lgn_act[max_lgn_act_idx] > 0).any():
             # Modify weights ONLY for maxInd_LGN
 
-            x_input = self.is_firing
-            wt_input = self.lgn_weights[maxInd_LGN, :]
+            active_neurons = self.is_firing
+            max_lgn_node_weights = self.lgn_weights[max_lgn_act_idx, :]
 
             for _ in range(2):
-                wt_input = wt_input + 0.5 * (self.eta * (yAct_allLGN[maxInd_LGN]) * x_input)
+                max_lgn_node_weights = max_lgn_node_weights + 0.5 * (self.eta * (lgn_act[max_lgn_act_idx]) * active_neurons)
 
-            self.lgn_weights[:, maxInd_LGN] = wt_input
+            self.lgn_weights[max_lgn_act_idx, :] = max_lgn_node_weights
 
             # Modifying threshold! If threshold is much larger than activity :reduce ELSE increase
-            self.lgn_threshold[maxInd_LGN] = self.lgn_threshold[maxInd_LGN] + 0.005 * yAct_allLGN[maxInd_LGN]
+            self.lgn_threshold[max_lgn_act_idx] = self.lgn_threshold[max_lgn_act_idx] + 0.005 * lgn_act[max_lgn_act_idx]
 
             # Normalize weights to a constant strength
-            self.lgn_weights[maxInd_LGN, :] = self.lgn_weights[maxInd_LGN, :] / \
-                                              torch.mean(self.lgn_weights[maxInd_LGN, :]) * self.mu_wts
+            self.lgn_weights[max_lgn_act_idx, :] = self.lgn_weights[max_lgn_act_idx, :] / \
+                                                   torch.mean(self.lgn_weights[max_lgn_act_idx, :]) * self.mu_wts
 
         return None  # FIXME
 
