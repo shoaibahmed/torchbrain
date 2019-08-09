@@ -52,20 +52,6 @@ LGN_num = [400];%, 500];
 for outerRadius = 8%:2:24
 
 for numLGN= LGN_num
-    
-% clearvars -except numLGN LGN_num outerRadius
-% clc
-% close all
-
-% load('RetinaParams_1500.mat')
-% totNeurons_Retina = size(retinaParams.x,1);
-% 
-% 
-% i = 1;
-% numRetina = 1;
-% D = retinaParams(i).D;
-% totNeurons_Retina = size(retinaParams(i).x,1);
-   
 % Change wave-size!
 retinaParams(i).Dk = 5*(D<2)- 2*(D>outerRadius).*exp(-D/10); 
 retinaParams(i).Dk = retinaParams(i).Dk - diag(diag(retinaParams(i).Dk));
@@ -77,7 +63,6 @@ x_3d = [retinaParams(i).x, zeros(size(retinaParams(i).x,1),1)];
 eta = 0.1;
 decay_rt = 0.01;
 maxInnervations = totNeurons_Retina;
-%maxInnervations = 1499;
 
 LGN_params = {};
 connectedNeurons = [];
@@ -91,40 +76,10 @@ synapticMatrix_retinaLGN = zeros(totNeurons_Retina, numLGN);
 % Choose random nodes on the arbitGeometry REtina -- and layer up!
 layer_LGN = randi([1, totNeurons_Retina],numLGN,1);
 LGN_pos2d = retinaParams(1).x(layer_LGN,:);
-%LGN_pos = squareLength*rand(numLGN,2);
 
-
-%LGN_pos = squareLength*rand(numLGN,2);
 LGN_pos3d = [LGN_pos2d, ones(size(LGN_pos2d,1),1)];
 
 di = pdist2(x_3d, LGN_pos3d);
-
-% % synaptic matrix - spatial bias + normalization
-% for i = 1:numLGN
-%     
-%     P_wts = 1./di(:,i);
-%     retinaIndex = 1:length(P_wts);
-%     nodes_conn = [];
-%     
-%     for index = 1:maxInnervations
-%     
-%         nodes_conn = [nodes_conn, randsample( retinaIndex, 1, true, P_wts )];
-%         u = find(retinaIndex==nodes_conn(end));
-%         
-%         %remove last connection
-%         P_wts(u) = [];
-%         retinaIndex(u) = [];
-%     
-%     end
-%     %[val, ind_min] = sort(di(:,i),'ascend');
-%     
-%     synapticMatrix_retinaLGN(nodes_conn, i) = normrnd(mu_wts, sigma_wts, [maxInnervations,1]);
-%     %synapticMatrix_retinaLGN(ind_min(1:maxInnervations),i) = normrnd(mu_wts, sigma_wts, [maxInnervations,1]);
-%     synapticMatrix_retinaLGN(:,i) = synapticMatrix_retinaLGN(:,i)/mean(synapticMatrix_retinaLGN(:,i))*mu_wts;
-%     
-% end
-
-% synapticMatrix_retinaLGN = mu_wts*exp(-di/10);
 
 % Normalizing synaptic matrix
 for i = 1:numLGN
@@ -141,29 +96,6 @@ initSynapticMatrix_retinaLGN = synapticMatrix_retinaLGN;
 heatMap_wave = zeros(totNeurons_Retina,1); % # of times each neuron spikes
 
 rfSizes = [150:50:750]';
-
-
-%% Plot initial set of connections
-% 
-% figure;
-% ctr = 1;
-% for j = 1:20%numLGN        
-%         subplot(4,5,j)
-%         clear l
-%       
-%         l = find(initSynapticMatrix_retinaLGN(:,j)>0.1);
-%         hold on
-%         scatter(retinaParams(1).x(:,2),retinaParams(1).x(:,1),[],'k','filled')
-%         scatter(retinaParams(1).x(l,2),retinaParams(1).x(l,1),[],'r','filled')
-%         hold on
-%         %scatter(post_synapticPos(temp1(j),2),post_synapticPos(temp1(j),1),[],'b','filled')
-%         %scatter(retinaParams(1).x(LGN_params(j).connectLGN,2),retinaParams(1).x(LGN_params(j).connectLGN,1),'b','filled')
-%         title(sprintf('LGN %d',j))
-%         
-%         ctr = ctr + 1;
-% end 
-% 
-
    
 %% Spontaneous synchronous bursts of Retina(s)
 t = 0;
@@ -179,8 +111,7 @@ while(1)
     if (t>1e6)
         break
     end
-    
-   
+
     if mod(t,1000) == 0
     
         s2Matrix= synapticMatrix_retinaLGN;
@@ -211,22 +142,6 @@ while(1)
             
             temp1 = find(sum(s2Matrix)<rfSizes(minRFsize));
 
-%             figure; 
-%             scatter3(x_3d(:,2),x_3d(:,1),x_3d(:,3),'k','filled')
-%             hold on
-% 
-%             for i = 1:15%length(temp1)
-% 
-%                 l = find(s2Matrix(:,temp1(i))==1);
-%                 c = rand(1,3);
-%                 scatter3(LGN_pos3d(temp1(i),2),LGN_pos3d(temp1(i),1),LGN_pos3d(temp1(i),3),[],c,'filled')
-%                 hold on
-%                 scatter3(x_3d(l,2),x_3d(l,1),x_3d(l,3),[],repmat(c,length(l),1),'filled')
-%             end
-% 
-%             hold off
-            %saveas(gca,strcat('LGN_rf_1500_trial2/',sprintf('3DLGN_%d_%d_r=%d.fig',numLGN, totNeurons_Retina, outerRadius)));
-        
             figure;
             ctr = 1;
             for j = 1:20%numLGN        
@@ -238,21 +153,15 @@ while(1)
                     scatter(retinaParams(1).x(:,2),retinaParams(1).x(:,1),[],'k','filled')
                     scatter(retinaParams(1).x(l,2),retinaParams(1).x(l,1),[],'r','filled')
                     hold on
-                    %scatter(post_synapticPos(temp1(j),2),post_synapticPos(temp1(j),1),[],'b','filled')
-                    %scatter(retinaParams(1).x(LGN_params(j).connectLGN,2),retinaParams(1).x(LGN_params(j).connectLGN,1),'b','filled')
                     title(sprintf('LGN %d',temp1(j)))
 
                     ctr = ctr + 1;
             end 
-            %saveas(gca,strcat('LGN_rf_arbitGeo/',sprintf('2DLGN_%d_%d_r=%d.fig',numLGN, totNeurons_Retina, outerRadius)));
-            
+
             for j = temp1%1:numLGN
                 rgc_connected = [rgc_connected, find(~isnan(s2Matrix(:,j)))'];
             end
             percent_node = length(unique(rgc_connected))/totNeurons_Retina;
-            
-            % Save all variables in workspace (.mat)
-            %save(strcat('LGN_rf_arbitGeo/',sprintf('LGN_%d_%d_r=%d.mat',numLGN, totNeurons_Retina, outerRadius)));
         end
         numRfcompInit = numRfcomp;
         end
@@ -300,43 +209,10 @@ while(1)
         
         if length(fired)>30
             heatMap_wave(fired) = heatMap_wave(fired)+1;
-            
-%             figure(2);
-%             hold on
-%             scatter(retinaParams(1).x(:,2),retinaParams(1).x(:,1),'k','filled')
-%             if size(retinaParams(1).array_act,1) ~=0
-%                 scatter(retinaParams(1).array_act(:,2),retinaParams(1).array_act(:,1),'r','filled')
-%             end
-            
+
         end
         
     end
-  
-%     if (length(fired)>30)
-%     
-%     % Plot retina spontaneous synchronous bursts
-%     figure(1);
-%     subplot(2,2,1);
-%     hold on
-%     scatter(retinaParams(1).x(:,2),retinaParams(1).x(:,1),'k','filled')
-%     if size(retinaParams(1).array_act,1) ~=0
-%         scatter(retinaParams(1).array_act(:,2),retinaParams(1).array_act(:,1),'r','filled')
-%     end
-%     
-%     %figure(2);% Plot LGN connectivity
-%     for j = 1:numLGN        
-%         subplot(2,2,j+1)
-%         hold on
-%         scatter(retinaParams(1).x(:,2),retinaParams(1).x(:,1),[],synapticMatrix_retinaLGN(:,j),'filled')
-%         
-%         %scatter(retinaParams(1).x(LGN_params(j).connectLGN,2),retinaParams(1).x(LGN_params(j).connectLGN,1),'b','filled')
-%         title(sprintf('LGN %d; %d; t=%d',j,LGN_params(j).synapticChanges,t))
-%         colorbar
-%     end 
-%     
-%     pause(0.2)
-%     
-%     end
 
     % Hebbian learning for LGN nodes
       
@@ -379,136 +255,6 @@ while(1)
     end
     
 end
-%% 
-% temp1 = find(sum(s2Matrix)<maxRFsize);
-% 
-% post_synapticPos = [];
-% for node = 1:numLGN
-%     
-%     l = find(synapticMatrix_retinaLGN(:,node)>0.1);
-%     
-%     v = synapticMatrix_retinaLGN(l,node)'*retinaParams(1).x(l,:)./sum(synapticMatrix_retinaLGN(l,node));
-%     post_synapticPos = [post_synapticPos; v];
-% end
-% 
-% s2Matrix= synapticMatrix_retinaLGN;
-% s2Matrix(s2Matrix<0.1) = NaN;
-% s2Matrix = ~isnan(s2Matrix);        
-% 
-% 
-% if length(temp1)>0
-%         
-%     figure; 
-%     scatter3(x_3d(:,2),x_3d(:,1),x_3d(:,3),'k','filled')
-%     hold on
-%         
-%     for i = 1:15%length(temp1)
-%             
-%         l = find(s2Matrix(:,temp1(i))==1);
-%         c = rand(1,3);
-%         %scatter3(LGN_pos3d(temp1(i),2),LGN_pos3d(temp1(i),1),LGN_pos3d(temp1(i),3),[],c,'filled')
-%         scatter3(post_synapticPos(temp1(i),2),post_synapticPos(temp1(i),1), 0.5, [], c,'filled')
-%         hold on
-%         scatter3(x_3d(l,2),x_3d(l,1),x_3d(l,3),[],repmat(c,length(l),1),'filled')
-%      end
-% end
-% hold off
-% saveas(gca,strcat('LGN_rf_1500_trial2/',sprintf('3DLGN_%d_%d_r=%d.fig',numLGN, totNeurons_Retina, outerRadius)));
-% 
-% figure;
-% ctr = 1;
-% for j = 1:20%numLGN        
-%         subplot(4,5,j)
-%         clear l
-%       
-%         l = find(synapticMatrix_retinaLGN(:,temp1(j))>0.1);
-%         hold on
-%         scatter(retinaParams(1).x(:,2),retinaParams(1).x(:,1),[],'k','filled')
-%         scatter(retinaParams(1).x(l,2),retinaParams(1).x(l,1),[],'r','filled')
-%         hold on
-%         %scatter(post_synapticPos(temp1(j),2),post_synapticPos(temp1(j),1),[],'b','filled')
-%         %scatter(retinaParams(1).x(LGN_params(j).connectLGN,2),retinaParams(1).x(LGN_params(j).connectLGN,1),'b','filled')
-%         title(sprintf('LGN %d',temp1(j)))
-%         
-%         ctr = ctr + 1;
-% end 
-% saveas(gca,strcat('LGN_rf_1500_trial2/',sprintf('2DLGN_%d_%d_r=%d.fig',numLGN, totNeurons_Retina, outerRadius)));
-% 
-% 
-% 
-% %% PLOTS ON RETINAL WAVE!
-% 
-% synapticMatrix_retinaLGN(synapticMatrix_retinaLGN<0.1) = NaN;
-% 
-% rgc_connected = [];
-% % 
-% for j = temp1%1:numLGN
-%     rgc_connected = [rgc_connected, find(~isnan(synapticMatrix_retinaLGN(:,j)))'];
-% end
-% % 
-% percent_node = length(unique(rgc_connected))/totNeurons_Retina;
-% 
-% % 
-% % %% Evaluate post-synaptic - Centroid of each LGN based on its connections from the retina
-% % init_LGNPos  = [];
-% % post_synapticPos = [];
-% % centroid_synaptic = [];
-% 
-% 
-% selfOrganize_reps = synapticMatrix_retinaLGN;
-% vecNonNanPos = find(~isnan(synapticMatrix_retinaLGN));
-% vecNanPos = find(isnan(synapticMatrix_retinaLGN));
-% selfOrganize_reps(vecNonNanPos) = 1;
-% selfOrganize_reps(vecNanPos) = 0;
-% % 
-% % 
-% % clear node
-% % for node = temp1
-% %     v2 = selfOrganize_reps(:,node)'*retinaParams(1).x/sum(selfOrganize_reps(:,node));
-% %     centroid_synaptic = [centroid_synaptic; v2];
-% % end
-% % 
-% % clear node
-% % 
-% 
-% % for node = 1:numLGN
-% %     v = synapticMatrix_retinaLGN(LGN_params(node).connectLGN, node)'*retinaParams(1).x(LGN_params(node).connectLGN,:)./sum(synapticMatrix_retinaLGN(LGN_params(node).connectLGN, node));
-% %     post_synapticPos = [post_synapticPos; v];
-% %     
-% %     v2 = initSynapticMatrix_retinaLGN(find(initSynapticMatrix_binary(:,node)~=0), node)'*retinaParams(1).x(find(initSynapticMatrix_binary(:,node)~=0),:)./sum(initSynapticMatrix_retinaLGN(find(initSynapticMatrix_binary(:,node)~=0), node));
-% %     init_LGNPos = [init_LGNPos; v2];
-% %     
-% % end
-% % 
-% % 
-% % %% Saving all LGN nodes that form "good" clusters
-% % 
-% % All LGN that form "good" clusters
-% synapticMatrix_RGC_LGN_goodClust = synapticMatrix_retinaLGN(:,temp1);
-% rgc_pos = retinaParams(1).x;
-% %save('RGC-LGN network.mat', 'synapticMatrix_RGC_LGN_goodClust','rgc_pos')
-% 
-% save(strcat('LGN_rf_1500_trial2/',sprintf('LGN_%d_%d_r=%d.mat',numLGN, totNeurons_Retina, outerRadius)));
-% 
-% 
-% % Representational_AccuracyRGC_coordinates
-% 
-% % 
-% % %% Subplot after removing connections with ~0 weights!
-% % 
-% % x= retinaParams(1).x;
-% % x_3d = [x, zeros(size(x,1),1)];
-% % sc_color = repmat([0 0 0]+0.85,numLGN,1);
-% % 
-% % %% PLOT LGN positions before and after clustering (TO show tiling of space)
-% % 
-% % PoolingLayer_posInitial = [init_LGNPos, 0.5*ones(size(init_LGNPos,1),1)];
-% % 
-% % 
-% % fsave = sprintf('5DecLGNClustWaveTopology_40connect/LGN_winnerTakeAll_outerRadius_%d_trial_%d',outerRadius,trial);
-% % save(fsave)
-% % trial = trial + 1;
-
 end
 
 end

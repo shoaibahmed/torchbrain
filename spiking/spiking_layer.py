@@ -25,7 +25,7 @@ def pairwise_distance(t):
 
 
 class SpikingLayer(nn.Module):
-    def __init__(self, num_neurons, square_size, neighbourhood_size, norm=2):
+    def __init__(self, num_neurons, square_size, neighbourhood_size):
         super(SpikingLayer, self).__init__()
         self.num_neurons = num_neurons
 
@@ -37,24 +37,28 @@ class SpikingLayer(nn.Module):
 
         self.is_firing = None
         self.node_x = None
-        self.reset_state()
         self.firing_matrix = []
 
         # 3. Initialize nodes
         self.nodes = nn.ModuleList([Node(topology[i, :], dist_matrix[i, :], neighbourhood_size)
                                     for i in range(num_neurons)])
 
+        # Set the state of the model to none
+        self.reset_state()
+
     def forward(self, x):
         self.node_x = [torch.matmul(node.get_weights(), self.is_firing) for node in self.nodes]
         for idx, node in enumerate(self.nodes):
             _ = node(self.node_x[idx])
             self.is_firing[idx] = node.is_node_firing()
-        self.firing_matrix.append(self.is_firing.cpu().numpy())
-        return x
+        self.firing_matrix.append(self.is_firing.cpu().clone().numpy())
+        return None  # FIXME
 
     def reset_state(self):
         self.firing_matrix = []
         self.is_firing = torch.zeros(self.num_neurons)
+        for node in self.nodes:
+            node.reset()
 
     def get_firing_matrix(self):
         return self.firing_matrix
@@ -73,22 +77,30 @@ class SpikingNN(nn.Module):
         self.layer = nn.Sequential(*layers)
 
     def forward(self, x):
+        # Evolve the dynamics of the model over time
         for _ in range(self.num_timesteps):
-            x = self.layer(x)
+            _ = self.layer(x)
+
+        # Get neuron firing pattern and reset its state
         for idx in range(len(self.layer)):
             firing_matrix = self.layer[idx].get_firing_matrix()
             self.layer[idx].reset_state()
+
         return firing_matrix
 
 
 if __name__ == "__main__":
-    net = SpikingNN(1, 1500, 10, 10, (3, 5), num_timesteps=10)
+    net = SpikingNN(1, 1500, 50, 10, (2, 4), num_timesteps=500)
     inp = torch.rand((1, 1, 28, 28))
     out = net(inp)
     out = np.array(out)
 
     import matplotlib.pyplot as plt
-    plt.imshow(out.T)
+    plt.figure(figsize=(18, 9))
+    plt.imshow(out)
+    plt.xlabel('Neuron ID')
+    plt.ylabel('Activation over time')
+    plt.tight_layout()
     plt.show()
 
     print(out.shape)
