@@ -96,7 +96,7 @@ initSynapticMatrix_retinaLGN = synapticMatrix_retinaLGN;
 heatMap_wave = zeros(totNeurons_Retina,1); % # of times each neuron spikes
 
 rfSizes = [150:50:750]';
-   
+
 %% Spontaneous synchronous bursts of Retina(s)
 t = 0;
 
