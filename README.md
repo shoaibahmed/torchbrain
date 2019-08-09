@@ -58,9 +58,9 @@ Spiking neural network in the first layer spontaneously forming spatiotemporal w
 
 <!-- ![Receptive Field Results](./images/90.png?raw=true&s=100 "Receptive field"){:width="50px"} -->
 <p align="center">
-  <img src="./images/90.png" width="400">
-  <img src="./images/95.png" width="400">
-  <img src="./images/100.png" width="400">
+  <img src="./Images/90.png" width="400">
+  <img src="./Images/95.png" width="400">
+  <img src="./Images/100.png" width="400">
 </p>
 
 ## Challenges we ran into
@@ -102,7 +102,14 @@ For results, please check the notebook.
 
 MIT
 
-# Cite
+## TODOs:
+
+- Model optimization (vectorization possible)
+- Better abstractions (the current abstractions are not optimal)
+- Implementation of other neural dynamics models (only Izkhikowich model is available at the moment)
+- Implementation of ELM based on spiking NN as the feature extractor
+
+## Cite
 
 ```
 @article{DBLP:journals/corr/abs-1906-01039,
