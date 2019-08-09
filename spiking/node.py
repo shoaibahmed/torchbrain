@@ -21,9 +21,15 @@ class Node(nn.Module):
         self.v = torch.tensor([-65])
         self.u = self.b * self.v
         self.threshold = torch.tensor([30])
+        self.is_firing = False
 
     def get_pos(self):
         return self.pos
+
+    def is_node_firing(self):
+        firing = self.is_firing
+        self.is_firing = False
+        return firing
 
     def get_weights(self):
         return self.weights
@@ -33,8 +39,8 @@ class Node(nn.Module):
         input = x + 3 * torch.randn(x.size())
 
         # Reset memory if the neuron fired
-        is_firing = self.v > self.threshold
-        if is_firing:
+        self.is_firing = self.v > self.threshold
+        if self.is_firing:
             self.v = self.c
             self.u += self.d
 
