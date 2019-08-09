@@ -102,7 +102,7 @@ class LGNLayer(nn.Module):
 
         # 5. Define LGN synaptic weights
         lgn_weights = torch.normal(self.mu_wts, self.sigma_wts, size=(num_neurons_lgn, num_neurons_retina))
-        self.lgn_weights = lgn_weights / torch.mean(lgn_weights, dim=1, keepdim=True)  # Normalize the input to a particular LGN neuron
+        self.lgn_weights = lgn_weights / torch.mean(lgn_weights, dim=1, keepdim=True) * self.mu_wts  # Normalize the input to a particular LGN neuron
         self.lgn_threshold = torch.normal(70.0, 2.0, size=(num_neurons_lgn,))  # Number of LGN layers
 
         # 6. Initialize nodes
@@ -121,15 +121,13 @@ class LGNLayer(nn.Module):
 
         # Hebian learning for the LGN nodes
         lgn_act = torch.matmul(self.lgn_weights, self.is_firing)
-        lgn_act[lgn_act < 0] = 0.9
         lgn_act = lgn_act - self.lgn_threshold
         lgn_act[lgn_act < 0] = 0.0
 
-        max_lgn_act_val, max_lgn_act_idx = torch.max(lgn_act, dim=-1)
+        max_lgn_act_val, max_lgn_act_idx = torch.max(lgn_act, axis=0)
 
-        if (lgn_act[max_lgn_act_idx] > 0).any():
-            # Modify weights ONLY for maxInd_LGN
-
+        if lgn_act[max_lgn_act_idx] > 0:
+            # Modify weights ONLY for max_ind
             active_neurons = self.is_firing
             max_lgn_node_weights = self.lgn_weights[max_lgn_act_idx, :]
 
@@ -208,7 +206,7 @@ class SpikingLGN(nn.Module):
             firing_matrix = self.layer[idx].get_firing_matrix()
             self.layer[idx].reset_state()
 
-        # TODO: Add classification here?
+        # TODO: Add classification layer here?
 
         return firing_matrix
 
