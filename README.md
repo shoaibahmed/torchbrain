@@ -1,4 +1,4 @@
-![torchbrain](torchbrain.png)
+![torchbrain](Images/torchbrain.png)
 
 ## Inspiration
 Deep Learning has revolutionized the way we conceive computation and the way we interact with devices on a daily basis. Although very successful, they have succumbed to many limitations; namely:
@@ -71,6 +71,16 @@ As we've said, we're (mostly) not computational neuroscientists. We've had to le
 ## What's next for torchbrain
 Ideally, the computational neuroscience community and community of machine-learning engineers who are moving towards building brain-inspired architecture should contribute to this endeavor of implementing libraries and frameworks on PyTorch for spiking neural networks. We believe there's a lot of potential for nailing the core abstractions of the field and providing tools that accelerate research. 
 
+## License:
+
+To run a basic test:
+
+```
+pip3 install torch torchvision
+python3 ./spiking/spiking_layer.py
+```
+
+For results, please check the notebook .
 
 ## License:
 
