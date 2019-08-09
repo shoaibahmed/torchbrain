@@ -7,7 +7,7 @@ from optparse import OptionParser
 import torch
 from torchvision import transforms
 from torchvision import datasets
-from spiking import SpikingNN
+from spiking import SpikingLGN
 from torch.utils.data import DataLoader
 
 
@@ -22,7 +22,8 @@ def train(options):
     os.mkdir(options.outputDir)
 
     # Create model
-    model = SpikingNN()  # FIXME
+    model = SpikingLGN(num_retina_layers=1, num_lgn_layers=1, num_neurons_retina=1500, num_neurons_lgn=400,
+                       square_size=50, num_classes=10, neighbourhood_size=(3, 5), num_timesteps=10000)
 
     if torch.cuda.device_count() > 1:
         print("Using", torch.cuda.device_count(), "GPUs!")
