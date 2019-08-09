@@ -1,5 +1,7 @@
 # Torch Brain
 
+![torchbrain](torchbrain.png)
+
 ## Inspiration
 Deep Learning has revolutionized the way we conceive computation and the way we interact with devices on a daily basis. Although very successful, they have succumbed to many limitations; namely:
 1. Lack of robustness (adversarial examples)
