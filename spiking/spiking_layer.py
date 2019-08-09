@@ -1,5 +1,6 @@
 #!/bin/bash
 
+import numpy as np
 import torch
 from torch import nn
 
@@ -37,6 +38,7 @@ class SpikingLayer(nn.Module):
         self.is_firing = None
         self.node_x = None
         self.reset_state()
+        self.firing_matrix = []
 
         # 3. Initialize nodes
         self.nodes = nn.ModuleList([Node(topology[i, :], dist_matrix[i, :], neighbourhood_size)
@@ -47,11 +49,15 @@ class SpikingLayer(nn.Module):
         for idx, node in enumerate(self.nodes):
             _ = node(self.node_x[idx])
             self.is_firing[idx] = node.is_node_firing()
-
+        self.firing_matrix.append(self.is_firing.cpu().numpy())
         return x
 
     def reset_state(self):
+        self.firing_matrix = []
         self.is_firing = torch.zeros(self.num_neurons)
+
+    def get_firing_matrix(self):
+        return self.firing_matrix
 
 
 class SpikingNN(nn.Module):
@@ -69,10 +75,20 @@ class SpikingNN(nn.Module):
     def forward(self, x):
         for _ in range(self.num_timesteps):
             x = self.layer(x)
-        return x
+        for idx in range(len(self.layer)):
+            firing_matrix = self.layer[idx].get_firing_matrix()
+            self.layer[idx].reset_state()
+        return firing_matrix
 
 
 if __name__ == "__main__":
-    net = SpikingNN(1, 10, 10, 10, (3, 5))
+    net = SpikingNN(1, 1500, 10, 10, (3, 5), num_timesteps=10)
     inp = torch.rand((1, 1, 28, 28))
     out = net(inp)
+    out = np.array(out)
+
+    import matplotlib.pyplot as plt
+    plt.imshow(out.T)
+    plt.show()
+
+    print(out.shape)
