@@ -10,7 +10,7 @@ class Node(nn.Module):
 
         neighbours_excitory = (neighbours_dist < neighbourhood_size[0]).float()
         neighbours_inhibitory = (neighbours_dist > neighbourhood_size[1]).float()
-        self.weights = neighbours_excitory * 5 + neighbours_inhibitory * torch.exp(neighbours_dist / 10) * -2
+        self.weights = neighbours_excitory * 5 + neighbours_inhibitory * torch.exp(-neighbours_dist / 10) * -2
 
         self.a = torch.tensor([0.02])
         self.b = torch.tensor([0.2])
@@ -41,12 +41,12 @@ class Node(nn.Module):
         # Reset memory if the neuron fired
         self.is_firing = self.v > self.threshold
         if self.is_firing:
-            self.v = self.c
+            self.v = self.c.clone()
             self.u += self.d
 
         # Update the dynamics of the model (stability improved with smaller steps)
         for _ in range(2):
-            self.v += 0.5 * (0.04 * self.v ** 2 + 5 * self.v * 140 - self.u + input)
+            self.v += 0.5 * (0.04 * self.v ** 2 + 5 * self.v + 140 - self.u + input)
         self.u += self.a * (self.b * self.v - self.u)
 
         return x
