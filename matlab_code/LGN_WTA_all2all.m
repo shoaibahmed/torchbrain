@@ -52,6 +52,7 @@ LGN_num = [400];%, 500];
 for outerRadius = 8%:2:24
 
 for numLGN= LGN_num
+
 % Change wave-size!
 retinaParams(i).Dk = 5*(D<2)- 2*(D>outerRadius).*exp(-D/10); 
 retinaParams(i).Dk = retinaParams(i).Dk - diag(diag(retinaParams(i).Dk));
@@ -153,6 +154,7 @@ while(1)
                     scatter(retinaParams(1).x(:,2),retinaParams(1).x(:,1),[],'k','filled')
                     scatter(retinaParams(1).x(l,2),retinaParams(1).x(l,1),[],'r','filled')
                     hold on
+
                     title(sprintf('LGN %d',temp1(j)))
 
                     ctr = ctr + 1;
@@ -162,6 +164,7 @@ while(1)
                 rgc_connected = [rgc_connected, find(~isnan(s2Matrix(:,j)))'];
             end
             percent_node = length(unique(rgc_connected))/totNeurons_Retina;
+
         end
         numRfcompInit = numRfcomp;
         end
@@ -177,7 +180,6 @@ while(1)
             if LGN_synapticChanges(i) < 200
                 LGN_threshold(i) = max(LGNactivity(:,i))*1/5;
             end
-            
             
         end
         LGNactivity = max(LGNactivity);
@@ -209,9 +211,7 @@ while(1)
         
         if length(fired)>30
             heatMap_wave(fired) = heatMap_wave(fired)+1;
-
         end
-        
     end
 
     % Hebbian learning for LGN nodes
@@ -255,6 +255,7 @@ while(1)
     end
     
 end
+
 end
 
 end

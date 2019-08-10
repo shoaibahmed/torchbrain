@@ -6,6 +6,22 @@ from torch import nn
 
 from node import Node
 
+def pairwise_distance(t):
+    """
+    Euclidean pairwise dist. similar to scipy.spatial.distance.pdist.
+    Args:
+        t (tensor): 2d tensor
+    """
+
+    n = t.size(0)
+    m = t.size(0)
+    d = t.size(1)
+
+    x = t.unsqueeze(1).expand(n, m, d)
+    y = t.unsqueeze(0).expand(n, m, d)
+
+    return torch.pow(x - y, 2).sum(2)
+
 
 def pairwise_distance(u, v=None):
     """
