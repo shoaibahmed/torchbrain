@@ -7,7 +7,7 @@ from optparse import OptionParser
 import torch
 from torchvision import transforms
 from torchvision import datasets
-from spiking import SpikingELM
+from spiking import SpikingLGN
 from torch.utils.data import DataLoader
 
 
@@ -22,7 +22,8 @@ def train(options):
     os.mkdir(options.outputDir)
 
     # Create model
-    model = SpikingELM()
+    model = SpikingLGN(num_retina_layers=1, num_lgn_layers=1, num_neurons_retina=1500, num_neurons_lgn=400,
+                       square_size=50, num_classes=10, neighbourhood_size=(3, 5), num_timesteps=10000)
 
     if torch.cuda.device_count() > 1:
         print("Using", torch.cuda.device_count(), "GPUs!")
@@ -32,15 +33,14 @@ def train(options):
     model.to(device)
 
     # Create dataloader
+    input_size = (28, 28)
     dataTransform = transforms.Compose([
         transforms.RandomResizedCrop(input_size, scale=(0.7, 1.0)),
         transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=mean, std=std)])
+        transforms.ToTensor()])
 
-    dataset = datasets.MNIST(options.rootDir, split=Data.TRAIN, transform=dataTransform)
+    dataset = datasets.MNIST(options.rootDir, split="train", transform=dataTransform)
     dataLoader = DataLoader(dataset=dataset, num_workers=8, batch_size=options.batchSize, shuffle=True)
-    assert options.numClasses == dataset.getNumClasses(), "Error: Number of classes found in the dataset is not equal to the number of classes specified in the options (%d != %d)!" % (dataset.getNumClasses(), options.numClasses)
 
     # Define optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0001, weight_decay=1e-5)
