@@ -4,23 +4,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from node import Node
-
-def pairwise_distance(t):
-    """
-    Euclidean pairwise dist. similar to scipy.spatial.distance.pdist.
-    Args:
-        t (tensor): 2d tensor
-    """
-
-    n = t.size(0)
-    m = t.size(0)
-    d = t.size(1)
-
-    x = t.unsqueeze(1).expand(n, m, d)
-    y = t.unsqueeze(0).expand(n, m, d)
-
-    return torch.pow(x - y, 2).sum(2)
+from .node import Node
 
 
 def pairwise_distance(u, v=None):
@@ -86,10 +70,11 @@ class SpikingLayer(nn.Module):
 
 class LGNLayer(nn.Module):
     # TODO: Add possibility to add multiple layers of Retina or LGN - layer idx
-    def __init__(self, num_neurons_retina, num_neurons_lgn, square_size, neighbourhood_size):
+    def __init__(self, num_neurons_retina, num_neurons_lgn, square_size, neighbourhood_size, device=None):
         super(LGNLayer, self).__init__()
         self.num_neurons_retina = num_neurons_retina
         self.num_neurons_lgn = num_neurons_lgn
+        self.square_size = square_size
 
         # Parameters of the LGN
         self.eta = 0.1
@@ -106,7 +91,6 @@ class LGNLayer(nn.Module):
 
         # 1. Define topology - square
         topology = torch.rand(num_neurons_retina, 2) * square_size
-        topology_3d = torch.cat([topology, torch.full((num_neurons_retina, 1), 0.0)], dim=-1)  # Fixed z coordinate based on the layer
 
         # 2. Define node neighbours
         dist_matrix = pairwise_distance(topology)
@@ -114,15 +98,22 @@ class LGNLayer(nn.Module):
         # 3. Spawn LGN nodes at random locations on the retina
         topology_lgn = torch.randint(0, num_neurons_retina, (num_neurons_lgn,))
         topology_lgn = topology[topology_lgn]
-        topology_lgn_3d = torch.cat([topology_lgn, torch.full((num_neurons_lgn, 1), 1.0)], dim=-1)  # Fixed z coordinate based on the layer
 
-        # 4. Define the distance matrix for the nodes in the retina and LGN
+        # 4. Define the distance matrix for the nodes in the retina and LGN - Fixed z coordinate based on the layer
+        topology_3d = torch.cat([topology, torch.full((num_neurons_retina, 1), 0.0)], dim=-1)
+        topology_lgn_3d = torch.cat([topology_lgn, torch.full((num_neurons_lgn, 1), 1.0)], dim=-1)
         self.dist_matrix_lgn = pairwise_distance(topology_lgn_3d, topology_3d)
 
         # 5. Define LGN synaptic weights
         lgn_weights = torch.normal(self.mu_wts, self.sigma_wts, size=(num_neurons_lgn, num_neurons_retina))
         self.lgn_weights = lgn_weights / torch.mean(lgn_weights, dim=1, keepdim=True) * self.mu_wts  # Normalize the input to a particular LGN neuron
         self.lgn_threshold = torch.normal(70.0, 2.0, size=(num_neurons_lgn,))  # Number of LGN layers
+
+        if device is not None:
+            self.lgn_weights = self.lgn_weights.to(device)
+            self.lgn_threshold = self.lgn_threshold.to(device)
+            topology = topology.to(device)
+            dist_matrix = dist_matrix.to(device)
 
         # 6. Initialize nodes
         self.nodes = nn.ModuleList([Node(topology[i, :], dist_matrix[i, :], neighbourhood_size)
@@ -131,7 +122,25 @@ class LGNLayer(nn.Module):
         # Set the state of the model to none
         self.reset_state()
 
-    def forward(self, x):
+    def init_input(self, x):
+        # FIXME: The intialization is still not correct - the image looks strange
+        assert self.is_firing is None
+        assert len(x.size()) == 4  # B, C, H, W
+        assert x.size(0) == 1 and x.size(1) == 1, "TorchBrain only supports batch size of 1 and single channel inputs!"
+
+        # Divide the neurons based on the matching pixel
+        cell_size = np.array([self.square_size / x.size(2), self.square_size / x.size(3)])  # Cell size: H, W
+
+        # Define the node idx
+        node_pixel_idx = (np.array([list(node.get_pos()) for node in self.nodes]) // cell_size).astype(np.int32)
+
+        # Compute the input to the neurons (is_firing will not be binary in this case)
+        is_firing = [x[0, 0, node_pixel_idx[i, 0], node_pixel_idx[i, 1]].item() for i in range(node_pixel_idx.shape[0])]
+        self.is_firing = torch.from_numpy(np.array(is_firing)).float().to(x.device)
+        # self.is_firing = torch.cat(is_firing, dim=0).to(x.device)
+
+    def forward(self, _):
+        assert self.is_firing is not None
         self.node_x = [torch.matmul(node.get_weights(), self.is_firing) for node in self.nodes]
         for idx, node in enumerate(self.nodes):
             _ = node(self.node_x[idx])
@@ -166,12 +175,12 @@ class LGNLayer(nn.Module):
                                                    torch.mean(self.lgn_weights[max_lgn_act_idx, :]) * self.mu_wts
             self.activated[max_lgn_act_idx] += 1.0
 
-        return None  # FIXME
+        return None
 
     def reset_state(self):
         self.firing_matrix = []
         self.activation_history = []
-        self.is_firing = torch.zeros(self.num_neurons_retina)
+        self.is_firing = None
         self.activated = torch.zeros(self.num_neurons_lgn)
         for node in self.nodes:
             node.reset()
@@ -217,22 +226,28 @@ class SpikingNN(nn.Module):
 class SpikingLGN(nn.Module):
     # TODO: Separate out the retina and LGN layers
     def __init__(self, num_retina_layers, num_lgn_layers, num_neurons_retina, num_neurons_lgn,
-                 square_size, num_classes, neighbourhood_size=(3, 5), num_timesteps=10):
+                 square_size, num_classes, neighbourhood_size=(3, 5), num_timesteps=10, device=None):
         super(SpikingLGN, self).__init__()
         self.num_retina_layers = num_retina_layers
         self.num_lgn_layers = num_lgn_layers
         self.num_timesteps = num_timesteps
+        self.num_classes = num_classes
 
         layers = []
         for i in range(num_lgn_layers):
-            layer = LGNLayer(num_neurons_retina, num_neurons_lgn, square_size=square_size, neighbourhood_size=neighbourhood_size)
+            layer = LGNLayer(num_neurons_retina, num_neurons_lgn, square_size=square_size,
+                             neighbourhood_size=neighbourhood_size, device=device)
             layers.append(layer)
         self.layer = nn.Sequential(*layers)
 
     def forward(self, x):
+        # Initialize the input
+        for idx in range(len(self.layer)):
+            self.layer[idx].init_input(x)
+
         # Evolve the dynamics of the model over time
         for iter in range(self.num_timesteps):
-            _ = self.layer(x)
+            _ = self.layer(None)
 
             if (iter + 1) % 1000 == 0:
                 self.layer[0].update_params()  # TODO: Change the fixed index
@@ -246,22 +261,3 @@ class SpikingLGN(nn.Module):
         # TODO: Add classification layer here?
 
         return firing_matrix
-
-
-if __name__ == "__main__":
-    # net = SpikingNN(1, 1500, 50, 10, (2, 4), num_timesteps=500)
-    net = SpikingLGN(num_retina_layers=1, num_lgn_layers=1, num_neurons_retina=1500, num_neurons_lgn=400,
-                     square_size=50, num_classes=10, neighbourhood_size=(3, 5), num_timesteps=10000)
-    inp = torch.rand((1, 1, 28, 28))
-    out = net(inp)
-    out = np.array(out)
-
-    import matplotlib.pyplot as plt
-    plt.figure(figsize=(18, 9))
-    plt.imshow(out)
-    plt.xlabel('Neuron ID')
-    plt.ylabel('Activation over time')
-    plt.tight_layout()
-    plt.show()
-
-    print(out.shape)

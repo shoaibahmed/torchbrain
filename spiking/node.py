@@ -30,6 +30,9 @@ class Node(nn.Module):
     def get_weights(self):
         return self.weights
 
+    def get_pos(self):
+        return self.pos
+
     def forward(self, x):
         # Add random noise to the input
         inp = x + (3 * torch.randn(x.size()))
