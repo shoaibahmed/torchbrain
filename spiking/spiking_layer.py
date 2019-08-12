@@ -50,13 +50,13 @@ class SpikingLayer(nn.Module):
         # Set the state of the model to none
         self.reset_state()
 
-    def forward(self, x):
+    def forward(self, _):
         self.node_x = [torch.matmul(node.get_weights(), self.is_firing) for node in self.nodes]
         for idx, node in enumerate(self.nodes):
             _ = node(self.node_x[idx])
             self.is_firing[idx] = node.is_node_firing()
         self.firing_matrix.append(self.is_firing.cpu().clone().numpy())
-        return None  # FIXME
+        return None
 
     def reset_state(self):
         self.firing_matrix = []
@@ -123,7 +123,6 @@ class LGNLayer(nn.Module):
         self.reset_state()
 
     def init_input(self, x):
-        # FIXME: The intialization is still not correct - the image looks strange
         assert self.is_firing is None
         assert len(x.size()) == 4  # B, C, H, W
         assert x.size(0) == 1 and x.size(1) == 1, "TorchBrain only supports batch size of 1 and single channel inputs!"
@@ -137,7 +136,17 @@ class LGNLayer(nn.Module):
         # Compute the input to the neurons (is_firing will not be binary in this case)
         is_firing = [x[0, 0, node_pixel_idx[i, 0], node_pixel_idx[i, 1]].item() for i in range(node_pixel_idx.shape[0])]
         self.is_firing = torch.from_numpy(np.array(is_firing)).float().to(x.device)
-        # self.is_firing = torch.cat(is_firing, dim=0).to(x.device)
+        # self.is_firing[self.is_firing < 0.2] = 0.0
+
+        # Plot the initial firing pattern
+        # import matplotlib.pyplot as plt
+        # act = self.is_firing.cpu().numpy()
+        # neuron_pos = np.stack([n.pos.cpu().numpy() for n in self.nodes], axis=0)
+        # plt.figure(figsize=(10, 10))
+        # plt.scatter(neuron_pos[:, 0], neuron_pos[:, 1], c=act)
+        # plt.axis('off')
+        # plt.tight_layout()
+        # plt.show()
 
     def forward(self, _):
         assert self.is_firing is not None
@@ -197,9 +206,12 @@ class LGNLayer(nn.Module):
     def get_firing_matrix(self):
         return self.firing_matrix
 
+    def get_activation_histogram(self):
+        return self.activated
+
 
 class SpikingNN(nn.Module):
-    def __init__(self, num_layers, num_neurons, square_size, num_classes, neighbourhood_size=(3, 5), num_timesteps=10):
+    def __init__(self, num_layers, num_neurons, square_size, neighbourhood_size=(3, 5), num_timesteps=10):
         super(SpikingNN, self).__init__()
         self.num_layers = num_layers
         self.num_timesteps = num_timesteps
@@ -226,12 +238,11 @@ class SpikingNN(nn.Module):
 class SpikingLGN(nn.Module):
     # TODO: Separate out the retina and LGN layers
     def __init__(self, num_retina_layers, num_lgn_layers, num_neurons_retina, num_neurons_lgn,
-                 square_size, num_classes, neighbourhood_size=(3, 5), num_timesteps=10, device=None):
+                 square_size, neighbourhood_size=(3, 5), num_timesteps=10, device=None):
         super(SpikingLGN, self).__init__()
         self.num_retina_layers = num_retina_layers
         self.num_lgn_layers = num_lgn_layers
         self.num_timesteps = num_timesteps
-        self.num_classes = num_classes
 
         layers = []
         for i in range(num_lgn_layers):
@@ -250,14 +261,34 @@ class SpikingLGN(nn.Module):
             _ = self.layer(None)
 
             if (iter + 1) % 1000 == 0:
-                self.layer[0].update_params()  # TODO: Change the fixed index
+                for idx in range(len(self.layer)):
+                    self.layer[idx].update_params()
 
         # Get neuron firing pattern and reset its state
         for idx in range(len(self.layer)):
             # TODO: Add compatibility for LGN layers
             firing_matrix = self.layer[idx].get_firing_matrix()
+            self.activation_histogram = self.layer[idx].get_activation_histogram()
             self.layer[idx].reset_state()
 
-        # TODO: Add classification layer here?
-
         return firing_matrix
+
+    def get_activation_histogram(self):
+        return self.activation_histogram
+
+
+class SpikingELM(nn.Module):
+    def __init__(self, num_retina_layers, num_lgn_layers, num_neurons_retina, num_neurons_lgn,
+                 square_size, num_classes, hidden_rep=128, neighbourhood_size=(3, 5), num_timesteps=10, device=None):
+        super(SpikingELM, self).__init__()
+        self.spiking_layer = SpikingLGN(num_retina_layers, num_lgn_layers, num_neurons_retina, num_neurons_lgn,
+                                        square_size, num_classes, neighbourhood_size, num_timesteps, device)
+        self.cls_layer = nn.Sequential(nn.Linear(num_neurons_lgn, hidden_rep),
+                                       nn.Linear(hidden_rep, num_classes))
+
+    def forward(self, x):
+        _ = self.spiking_layer(x)
+        # activations = torch.stack(firing_matrix, dim=0)
+        activations = self.spiking_layer.get_activation_histogram()
+        out = self.cls_layer(activations)
+        return out

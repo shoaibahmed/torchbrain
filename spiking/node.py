@@ -35,7 +35,7 @@ class Node(nn.Module):
 
     def forward(self, x):
         # Add random noise to the input
-        inp = x + (3 * torch.randn(x.size()))
+        inp = x + (3.0 * torch.randn(x.size()))  # FIXME: Verify that the level of noise induced is not so high
 
         # Reset memory if the neuron fired
         self.is_firing = self.v >= self.threshold
