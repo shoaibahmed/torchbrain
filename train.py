@@ -40,8 +40,9 @@ def train(args):
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor()])
 
+    # TorchBrain does not support a batch size of > 1 at this point
     dataset = datasets.MNIST(args.root_dir, train=True, transform=data_transform)
-    data_loader = DataLoader(dataset=dataset, num_workers=8, batch_size=args.batch_size, shuffle=True)
+    data_loader = DataLoader(dataset=dataset, num_workers=8, batch_size=1, shuffle=True)
 
     # Define optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0001, weight_decay=1e-5)
@@ -64,10 +65,12 @@ def train(args):
             pred = model(X)
 
             # Optimize
-            optimizer.zero_grad()
+            if (iter_idx + 1) % args.batch_size == 0:
+                optimizer.step()
+                optimizer.zero_grad()
             loss = criterion(pred, y)
-            loss.backward()
-            optimizer.step()
+            eqv_iter_loss = loss / args.batch_size
+            eqv_iter_loss.backward()
             # scheduler.step(val_loss)
 
             if iter_idx % args.display_step == 0:
@@ -85,7 +88,7 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--train-model", action="store_true", default=False, help="Train model")
     parser.add_argument("-c", "--test-model", action="store_true", default=False, help="Test model")
     parser.add_argument("-o", "--output-dir", action="store", type=str, default="./output", help="Output directory")
-    parser.add_argument("-e", "--training-epochs", action="store", type=int, default=10, help="Number of training epochs")
+    parser.add_argument("-e", "--training-epochs", action="store", type=int, default=50, help="Number of training epochs")
     parser.add_argument("-b", "--batch-size", action="store", type=int, default=1, help="Batch Size")
     parser.add_argument("-d", "--display-step", action="store", type=int, default=2, help="Display step where the loss should be displayed")
 
