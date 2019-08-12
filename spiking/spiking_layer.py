@@ -70,6 +70,7 @@ class SpikingLayer(nn.Module):
 
 class LGNLayer(nn.Module):
     # TODO: Add possibility to add multiple layers of Retina or LGN - layer idx
+    # Remove the reliance on the node class - directly use the vectorized implementation (speed considerations)
     def __init__(self, num_neurons_retina, num_neurons_lgn, square_size, neighbourhood_size, device=None):
         super(LGNLayer, self).__init__()
         self.num_neurons_retina = num_neurons_retina
@@ -266,7 +267,6 @@ class SpikingLGN(nn.Module):
 
         # Get neuron firing pattern and reset its state
         for idx in range(len(self.layer)):
-            # TODO: Add compatibility for LGN layers
             firing_matrix = self.layer[idx].get_firing_matrix()
             self.activation_histogram = self.layer[idx].get_activation_histogram()
             self.layer[idx].reset_state()
@@ -282,7 +282,7 @@ class SpikingELM(nn.Module):
                  square_size, num_classes, hidden_rep=128, neighbourhood_size=(3, 5), num_timesteps=10, device=None):
         super(SpikingELM, self).__init__()
         self.spiking_layer = SpikingLGN(num_retina_layers, num_lgn_layers, num_neurons_retina, num_neurons_lgn,
-                                        square_size, num_classes, neighbourhood_size, num_timesteps, device)
+                                        square_size, neighbourhood_size, num_timesteps, device)
         self.cls_layer = nn.Sequential(nn.Linear(num_neurons_lgn, hidden_rep),
                                        nn.Linear(hidden_rep, num_classes))
 
@@ -290,5 +290,6 @@ class SpikingELM(nn.Module):
         _ = self.spiking_layer(x)
         # activations = torch.stack(firing_matrix, dim=0)
         activations = self.spiking_layer.get_activation_histogram()
+        activations = activations.to(x.device)[None, :]
         out = self.cls_layer(activations)
         return out
